@@ -46,9 +46,32 @@ if __name__ == "__main__":
     .add("docks_available",IntegerType(),True) \
     .add("time",TimestampType(),True)
 
+    df_stations2 = df_stations.filter(df_stations.landmark=="San Jose")\
+    .select(df_stations.station_id,df_stations.name)
+    df_stations2.show()
+    df_stations2.count()
+
     df_status = load_data(spark, schema_status, 's3://skax-aws-edu-data/bike-share/status.csv')
+    df_status2 = df_status.filter(date_format(df_status.time, 'yyyy')=='2015')\
+    .filter(date_format(df_status.time, 'MM')=='02')\
+    .filter(date_format(df_status.time, 'dd')>='22')\
+    .select(df_status.station_id, df_status.bikes_available, date_format(df_status.time, 'hh').alias('hour'))
+
+    df_status2.show(5)
+    df_status2.count()
     
     join_df = join_data(df_stations, df_status, "station_id", "inner", ["name", "bikes_available"])
+    join_df2 = join_data(df_stations2, df_status2, "station_id", "inner", ["name", "bikes_available", "hour"])
+
+    avg_df = join_df2.groupBy("name", "hour")\
+    .avg("bikes_available")\
+    .orderBy("avg(bikes_available)", ascending=False)
+    avg_df.show(5)
+    avg_df.count()
+
+    avg_df.write.options(header='True', delimiter=',')\
+    .mode('overwrite')\
+    .csv("bikesharedataframe")
 
     spark.stop()
 
