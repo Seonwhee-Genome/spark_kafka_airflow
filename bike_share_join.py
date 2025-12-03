@@ -6,6 +6,26 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 
 
+def load_data(spark, schema, file):
+    df = spark.read\
+    .schema(schema)\
+    .csv(file)
+
+    df.printSchema()
+    df.show(5)
+
+    return df
+
+
+def join_data(df_a, df_b, key, join_type):
+    join_df = df_a.join(df_b, df_a[key] == df_b[key],"inner")\
+    .select(df_a.name, df_b.bikes_available)
+
+    join_df.show(5)
+    join_df.count()
+    return join_df
+
+
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("BikeShareJoin").getOrCreate()
 
@@ -18,32 +38,17 @@ if __name__ == "__main__":
     .add("landmark",StringType(),True) \
     .add("installation",StringType(),True)
 
-    df_stations = spark.read\
-    .schema(schema_stations)\
-    .csv('s3://skax-aws-edu-data/bike-share/stations.csv')
-
-    df_stations.printSchema()
-    df_stations.show(5)
-
+    df_stations = load_data(spark, schema_stations, 's3://skax-aws-edu-data/bike-share/stations.csv')
+   
     schema_status = StructType() \
     .add("station_id",IntegerType(),True) \
     .add("bikes_available",IntegerType(),True) \
     .add("docks_available",IntegerType(),True) \
     .add("time",TimestampType(),True)
 
-    df_status = spark.read\
-    .schema(schema_status)\
-    .csv('s3://skax-aws-edu-data/bike-share/status.csv')
-
-    df_status.printSchema()
-    df_status.show(5)
-
-    join_df = df_stations.join(df_status, df_stations.station_id == df_status.station_id,"inner")\
-    .select(df_stations.name, df_status.bikes_available)
-
-    join_df.show(5)
-
-    join_df.count()
+    df_status = load_data(spark, schema_status, 's3://skax-aws-edu-data/bike-share/status.csv')
+    
+    join_df = join_data(df_stations, df_status, "station_id", "inner")
 
     spark.stop()
 
