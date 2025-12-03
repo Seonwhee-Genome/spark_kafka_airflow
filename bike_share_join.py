@@ -5,6 +5,11 @@ from pyspark.sql.types import *
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 
+def execute_sql(spark, sql_cmd):
+    df = spark.sql(sql_cmd)
+    df.show(5)
+    df.count()
+    return df
 
 def load_data(spark, schema, file):
     df = spark.read\
@@ -45,6 +50,7 @@ if __name__ == "__main__":
     .add("bikes_available",IntegerType(),True) \
     .add("docks_available",IntegerType(),True) \
     .add("time",TimestampType(),True)
+    
 
     df_stations2 = df_stations.filter(df_stations.landmark=="San Jose")\
     .select(df_stations.station_id,df_stations.name)
@@ -59,7 +65,27 @@ if __name__ == "__main__":
 
     df_status2.show(5)
     df_status2.count()
-    
+
+    df_stations.createOrReplaceTempView("stations")
+    df_status.createOrReplaceTempView("status")
+    sql_cmd = """ select station_id, name 
+    from stations 
+    where landmark='San Jose'
+    """
+    execute_sql(spark, sql_cmd)
+    sql_cmd = """ select station_id, bikes_available, time
+    from status 
+    """
+    execute_sql(spark, sql_cmd)
+    sql_cmd = """ 
+    select station_id, bikes_available, date_format(time,'hh') as hour
+    from status
+    where INT(date_format(time,'yyyy'))=2015
+    and INT(date_format(time,'MM'))=02
+    and INT(date_format(time,'dd'))>=22
+    """
+    execute_sql(spark, sql_cmd)
+
     join_df = join_data(df_stations, df_status, "station_id", "inner", ["name", "bikes_available"])
     join_df2 = join_data(df_stations2, df_status2, "station_id", "inner", ["name", "bikes_available", "hour"])
 
@@ -72,6 +98,19 @@ if __name__ == "__main__":
     avg_df.write.options(header='True', delimiter=',')\
     .mode('overwrite')\
     .csv("bikesharedataframe")
+
+    sql_cmd = """ 
+    select b.name, date_format(a.time,'hh') as hour, avg(a.bikes_available) as avg
+    from status a inner join stations b
+    on a.station_id=b.station_id
+    where b.landmark='San Jose'
+    and INT(date_format(a.time,'yyyy'))=2015
+    and INT(date_format(a.time,'MM'))=02
+    and INT(date_format(a.time,'dd'))>=22
+    group by b.name, date_format(a.time,'hh')
+    order by avg(a.bikes_available) desc
+    """
+    execute_sql(spark, sql_cmd)
 
     spark.stop()
 
