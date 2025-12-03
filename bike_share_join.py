@@ -17,9 +17,9 @@ def load_data(spark, schema, file):
     return df
 
 
-def join_data(df_a, df_b, key, join_type):
-    join_df = df_a.join(df_b, df_a[key] == df_b[key],"inner")\
-    .select(df_a.name, df_b.bikes_available)
+def join_data(df_a, df_b, key, join_type, select_columns):
+    join_df = df_a.join(df_b, df_a[key] == df_b[key],join_type)\
+    .select(select_columns)
 
     join_df.show(5)
     join_df.count()
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     df_status = load_data(spark, schema_status, 's3://skax-aws-edu-data/bike-share/status.csv')
     
-    join_df = join_data(df_stations, df_status, "station_id", "inner")
+    join_df = join_data(df_stations, df_status, "station_id", "inner", ["name", "bikes_available"])
 
     spark.stop()
 
