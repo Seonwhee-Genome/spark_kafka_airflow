@@ -112,5 +112,58 @@ if __name__ == "__main__":
     """
     execute_sql(spark, sql_cmd)
 
+
+    schema_trips = StructType() \
+    .add("trip_id",IntegerType(),True) \
+    .add("duration",IntegerType(),True) \
+    .add("start_date",StringType(),True) \
+    .add("start_station",StringType(),True) \
+    .add("start_terminal",IntegerType(),True) \
+    .add("end_date",StringType(),True) \
+    .add("end_station",StringType(),True) \
+    .add("end_terminal",IntegerType(),True) \
+    .add("bike",IntegerType(),True) \
+    .add("subscription",StringType(),True) \
+    .add("zip_code",IntegerType(),True)
+    
+    df_trips = load_data(spark, schema_trips, 's3://skax-aws-edu-data/bike-share/trips.csv')
+    df_trips2 = df_trips.filter(df_trips.subscription == "Customer")\
+    .filter(col("start_station") == col("end_station"))\
+    .groupBy(col("start_station").alias("station"))\
+    .count()\
+    .orderBy("count", ascending = False)\
+    .show(5)
+
+
+
+    schema_weather = StructType() \
+    .add("date",StringType(),True) \
+    .add("max_temperature_f",IntegerType(),True) \
+    .add("mean_temperature_f",IntegerType(),True) \
+    .add("min_temperature_f",IntegerType(),True) \
+    .add("max_dew_point_f",IntegerType(),True) \
+    .add("mean_dew_point_f",IntegerType(),True) \
+    .add("min_dew_point_f",IntegerType(),True) \
+    .add("max_humidity",IntegerType(),True) \
+    .add("mean_humidity",IntegerType(),True) \
+    .add("min_humidity",IntegerType(),True) \
+    .add("max_sea_level_pressure_inches",DoubleType(),True) \
+    .add("mean_sea_level_pressure_inches",DoubleType(),True) \
+    .add("min_sea_level_pressure_inches",DoubleType(),True) \
+    .add("max_visibility_miles",IntegerType(),True) \
+    .add("mean_visibility_miles",IntegerType(),True) \
+    .add("min_visibility_miles",IntegerType(),True) \
+    .add("max_wind_Speed_mph",IntegerType(),True) \
+    .add("mean_wind_speed_mph",IntegerType(),True) \
+    .add("max_gust_speed_mph",IntegerType(),True) \
+    .add("precipitation_inches",DoubleType(),True) \
+    .add("cloud_cover",IntegerType(),True) \
+    .add("events",StringType(),True) \
+    .add("wind_dir_degrees",IntegerType(),True) \
+    .add("zip_code",IntegerType(),True)
+
+    df_weather = load_data(spark, schema_weather, 's3://skax-aws-edu-data/bike-share/weather.csv')
+
+    
     spark.stop()
 
