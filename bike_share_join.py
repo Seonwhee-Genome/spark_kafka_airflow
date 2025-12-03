@@ -134,6 +134,17 @@ if __name__ == "__main__":
     .orderBy("count", ascending = False)\
     .show(5)
 
+    df_trips.createOrReplaceTempView("trips")
+    sql_cmd = """ select start_station as station, count(*) as count
+    from trips 
+    where subscription="Customer"
+    and start_station = end_station
+    group by start_station
+    order by count desc
+    limit 5
+    """
+    execute_sql(spark, sql_cmd)    
+
 
 
     schema_weather = StructType() \
